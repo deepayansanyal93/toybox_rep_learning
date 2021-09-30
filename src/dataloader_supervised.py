@@ -8,7 +8,8 @@ import os
 
 class data_loader(torch.utils.data.Dataset):
 
-	def __init__(self, root, rng, train = True, transform = None, size = 224, hypertune = False, fraction = 1.0):
+	def __init__(self, root, rng, train = True, transform = None, size = 224, hypertune = False, fraction = 1.0,
+				 instance = False, split = None):
 
 		self.train = train
 		self.root = root
@@ -17,21 +18,38 @@ class data_loader(torch.utils.data.Dataset):
 		self.size = size
 		self.fraction = fraction
 		self.rng = rng
+		self.instance = instance
 		self.data_path = self.root
+		self.split = split
 		try:
 			assert os.path.isdir(self.data_path)
 		except AssertionError:
 			raise AssertionError("Data directory not found:", self.data_path)
-		if self.hypertune:
-			self.trainImagesFile = self.data_path + "toybox_data_cropped_dev.pickle"
-			self.trainLabelsFile = self.data_path + "toybox_data_cropped_dev.csv"
-			self.testImagesFile = self.data_path + "toybox_data_cropped_val.pickle"
-			self.testLabelsFile = self.data_path + "toybox_data_cropped_val.csv"
+		if self.instance:
+			self.label_key = 'Instance'
+			assert self.split == "instance" or self.split == "pretraining"
+			if self.split == "instance":
+				self.trainImagesFile = self.data_path + "train_instance.pickle"
+				self.trainLabelsFile = self.data_path + "train_instance.csv"
+				self.testImagesFile = self.data_path + "test_instance.pickle"
+				self.testLabelsFile = self.data_path + "test_instance.csv"
+			else:
+				self.trainImagesFile = self.data_path + "train.pickle"
+				self.trainLabelsFile = self.data_path + "train.csv"
+				self.testImagesFile = self.data_path + "train.pickle"
+				self.testLabelsFile = self.data_path + "train.csv"
 		else:
-			self.trainImagesFile = self.data_path + "toybox_data_cropped_train.pickle"
-			self.trainLabelsFile = self.data_path + "toybox_data_cropped_train.csv"
-			self.testImagesFile = self.data_path + "toybox_data_cropped_test.pickle"
-			self.testLabelsFile = self.data_path + "toybox_data_cropped_test.csv"
+			self.label_key = 'Class ID'
+			if self.hypertune:
+				self.trainImagesFile = self.data_path + "toybox_data_cropped_dev.pickle"
+				self.trainLabelsFile = self.data_path + "toybox_data_cropped_dev.csv"
+				self.testImagesFile = self.data_path + "toybox_data_cropped_val.pickle"
+				self.testLabelsFile = self.data_path + "toybox_data_cropped_val.csv"
+			else:
+				self.trainImagesFile = self.data_path + "toybox_data_cropped_train.pickle"
+				self.trainLabelsFile = self.data_path + "toybox_data_cropped_train.csv"
+				self.testImagesFile = self.data_path + "toybox_data_cropped_test.pickle"
+				self.testLabelsFile = self.data_path + "toybox_data_cropped_test.csv"
 
 		super().__init__()
 		if self.train:
@@ -58,11 +76,11 @@ class data_loader(torch.utils.data.Dataset):
 		if self.train:
 			actualIndex = self.indicesSelected[index]
 			img = np.array(cv2.imdecode(self.train_data[actualIndex], 3))
-			label = self.train_csvFile[actualIndex]['Class ID']
+			label = self.train_csvFile[actualIndex][self.label_key]
 		else:
 			actualIndex = index
 			img = np.array(cv2.imdecode(self.test_data[index], 3))
-			label = self.test_csvFile[index]['Class ID']
+			label = self.test_csvFile[index][self.label_key]
 
 		if self.transform is not None:
 			imgs = self.transform(img)
