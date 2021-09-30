@@ -8,24 +8,30 @@ import os
 
 class data_loader(torch.utils.data.Dataset):
 
-	def __init__(self, root, rng, train = True, transform = None, size = 224, fraction = 1.0, num = 1):
+	def __init__(self, root, rng, train = True, transform = None, size = 224, hypertune = False, fraction = 1.0):
 
 		self.train = train
 		self.root = root
 		self.transform = transform
-		self.num = num
+		self.hypertune = hypertune
 		self.size = size
 		self.fraction = fraction
 		self.rng = rng
-		self.data_path = self.root + str(num) + "/"
+		self.data_path = self.root
 		try:
 			assert os.path.isdir(self.data_path)
 		except AssertionError:
 			raise AssertionError("Data directory not found:", self.data_path)
-		self.trainImagesFile = self.data_path + "train.pickle"
-		self.trainLabelsFile = self.data_path + "train.csv"
-		self.testImagesFile = self.data_path + "test.pickle"
-		self.testLabelsFile = self.data_path + "test.csv"
+		if self.hypertune:
+			self.trainImagesFile = self.data_path + "toybox_data_cropped_dev.pickle"
+			self.trainLabelsFile = self.data_path + "toybox_data_cropped_dev.csv"
+			self.testImagesFile = self.data_path + "toybox_data_cropped_val.pickle"
+			self.testLabelsFile = self.data_path + "toybox_data_cropped_val.csv"
+		else:
+			self.trainImagesFile = self.data_path + "toybox_data_cropped_train.pickle"
+			self.trainLabelsFile = self.data_path + "toybox_data_cropped_train.csv"
+			self.testImagesFile = self.data_path + "toybox_data_cropped_test.pickle"
+			self.testLabelsFile = self.data_path + "toybox_data_cropped_test.csv"
 
 		super().__init__()
 		if self.train:

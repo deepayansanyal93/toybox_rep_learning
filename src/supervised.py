@@ -31,7 +31,6 @@ def get_parser(desc):
 	parser.add_argument("--saveName", "-sn", default = "", type = str)
 	parser.add_argument("--loadDir", "-ld", default = "", type = str)
 	parser.add_argument("--loadFile", "-lf", default = "", type = str)
-	parser.add_argument("--num", "-n", default = 1, type = int)
 	return parser.parse_args()
 
 
@@ -214,11 +213,10 @@ if __name__ == "__main__":
 										  transforms.Normalize(mean, std)])
 	test_transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize(256), transforms.ToTensor(),
 										 transforms.Normalize(mean, std)])
-	trainData = dataloader_supervised.data_loader(root = "../supervised_data/", rng = rng, train = True,
-														transform = train_transform, fraction = exp_args['fraction'],
-														num = exp_args['num'])
+	trainData = dataloader_supervised.data_loader(root = "../data/", rng = rng, train = True, hypertune = exp_args['hypertune'],
+														transform = train_transform, fraction = exp_args['fraction'])
 
-	testData = dataloader_supervised.data_loader(root = "../supervised_data/", rng = rng, train = False,
-												   transform = test_transform, num = exp_args['num'])
+	testData = dataloader_supervised.data_loader(root = "../data/", rng = rng, train = False, hypertune = exp_args['hypertune'],
+												   transform = test_transform)
 
 	train(network = net, train_data = trainData, test_data = testData, args = exp_args)
