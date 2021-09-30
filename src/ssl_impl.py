@@ -214,7 +214,7 @@ def learn_supervised(gpu, args, learner, run_id = 0):
 			if gpu == 0:
 				acc, _, _ = learner.linear_acc(trainLoader = trainLoader, testLoader = testLoader, run_id = run_id)
 				if args['save']:
-					args['writer'].add_scalar("Accuracy", acc, ep)
+					args['writer'].add_scalar("Accuracy", acc, ep + 1)
 
 	print("Preparing network for evaluation. Freezing all weights....")
 	learner.network.module.freeze_all_weights()
@@ -224,6 +224,7 @@ def learn_supervised(gpu, args, learner, run_id = 0):
 		acc, _, _ = learner.linear_acc(trainLoader = trainLoader, testLoader = testLoader, run_id = run_id)
 		if args['save']:
 			args['writer'].add_scalar("Accuracy", acc, numEpochs)
+			args['writer'].add_text("Final Accuracy", str(acc))
 
 	if args['save']:
 		if gpu == 0:
@@ -245,6 +246,24 @@ def set_seed(sd):
 	return rng, sd
 
 
+def log_exp_details(tb_writer, args):
+	tb_writer.add_text("hparams/lr", str(args['lr']))
+	tb_writer.add_text("hparams/lr_ft", str(args['lr_ft']))
+	tb_writer.add_text("hparams/e1", str(args['epochs1']))
+	tb_writer.add_text("hparams/e2", str(args['epochs2']))
+	tb_writer.add_text("hparams/wd", str(args['weight_decay']))
+	tb_writer.add_text("exp/setting", args['distort'])
+	tb_writer.add_text("hparams/seed", str(args['seed']))
+	tb_writer.add_text("hparams/batch_size", str(args['batch_size']))
+	tb_writer.add_text("hparams/f1", str(args["frac1"]))
+	tb_writer.add_text("hparams/f1", str(args["frac2"]))
+	tb_writer.add_text("exp/learner", str(args['learner']))
+	tb_writer.add_text("exp/validation", str(args['hypertune']))
+	if args['save']:
+		tb_writer.add_text("sv/save", str(args['save']))
+		tb_writer.add_text("sv/path", str(args['saveDir']))
+
+
 def run_experiments(args):
 	torch.autograd.set_detect_anomaly(True)
 	print(torch.cuda.get_device_name(0))
@@ -257,6 +276,8 @@ def run_experiments(args):
 	print("Splitting training over", str(torch.cuda.device_count()), "gpus.")
 	args['writer_name'] = "../runs/" + args['saveName']
 	args['world_size'] = args['num_gpus'] * args['num_nodes']
+	if args['save']:
+		log_exp_details(tb.SummaryWriter(args['writer_name']), args)
 	if args['learner'] == "byol":
 		learner = byol.BYOL(args = args, network = None, op_classes = 12)
 	else:
