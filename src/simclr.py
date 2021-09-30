@@ -29,11 +29,11 @@ class SimCLR:
 		except AssertionError:
 			raise AssertionError("Number of epochs of unsupervised training has to be greater than 10")
 		self.unsupervised_optimizer = optimizers.SGD(self.network.backbone.parameters(), lr = args['lr'], weight_decay =
-													 5e-4, momentum = 0.9)
+													 args['weight_decay'], momentum = 0.9)
 		self.unsupervised_optimizer.add_param_group({'params': self.network.projection_head.parameters()})
 
 		self.linear_eval_optimizer = optimizers.SGD(self.network.classifier.parameters(), lr = args['lr_ft'],
-													weight_decay = 5e-5, momentum = 0.9)
+													weight_decay = args['weight_decay'], momentum = 0.9)
 
 		self.unsupervised_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.unsupervised_optimizer,
 																				 T_max = self.num_epochs_unsupervised -
