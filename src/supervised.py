@@ -123,7 +123,7 @@ def train(network, classifier, train_data, test_data, args):
 											 pin_memory = False, num_workers = args['workers'])
 
 	optimizer = optim.Adam(classifier.parameters(), lr = args['lr'], weight_decay = 1e-5)
-	if args['finetune']:
+	if not args['pretrained'] or args['finetune']:
 		optimizer.add_param_group({'params': network.parameters()})
 	else:
 		for params in network.parameters():
@@ -133,7 +133,7 @@ def train(network, classifier, train_data, test_data, args):
 	numEpochs = args['epochs']
 	sup_losses = []
 	warmup_steps = 10 * len(trainLoader)
-	# optimizer.param_groups[0]['lr'] = 1 / warmup_steps * args['lr']
+	optimizer.param_groups[0]['lr'] = 1 / warmup_steps * args['lr']
 	for ep in range(numEpochs):
 		ep_id = 0
 		tot_loss = 0
@@ -160,7 +160,7 @@ def train(network, classifier, train_data, test_data, args):
 				scheduler.step()
 			else:
 				curr_step = ep * len(trainLoader) + ep_id + 1
-				# optimizer.param_groups[0]['lr'] = curr_step / warmup_steps * args['lr']
+				optimizer.param_groups[0]['lr'] = curr_step / warmup_steps * args['lr']
 		tqdmBar.close()
 		sup_losses.append(ep_losses)
 		if (ep + 1) % 20 == 0 and ep != numEpochs - 1:
@@ -170,8 +170,10 @@ def train(network, classifier, train_data, test_data, args):
 				test_csv_file_name = args['saveDir'] + "/test_pred_epoch_" + str(ep + 1) + ".csv"
 				eval_net(network = network, classifier = classifier, train_loader = trainLoader, test_loader = testLoader,
 						 train_file_name = train_csv_file_name, test_file_name = test_csv_file_name)
-				fileName = args['saveDir'] + "epoch_" + str(ep + 1) + ".pt"
+				fileName = args['saveDir'] + "backbone_epoch_" + str(ep + 1) + ".pt"
 				torch.save(network.state_dict(), fileName, _use_new_zipfile_serialization = False)
+				fileName = args['saveDir'] + "classifier_epoch_" + str(ep + 1) + ".pt"
+				torch.save(classifier.state_dict(), fileName, _use_new_zipfile_serialization = False)
 			else:
 				eval_net(network = network, classifier = classifier, train_loader = trainLoader, test_loader = testLoader)
 
@@ -180,8 +182,10 @@ def train(network, classifier, train_data, test_data, args):
 		test_csv_file_name = args['saveDir'] + "/test_pred_final.csv"
 		eval_net(network = network, classifier = classifier, train_loader = trainLoader, test_loader = testLoader,
 				 train_file_name = train_csv_file_name, test_file_name = test_csv_file_name)
-		fileName = args['saveDir'] + "final_model.pt"
+		fileName = args['saveDir'] + "backbone_final.pt"
 		torch.save(network.state_dict(), fileName, _use_new_zipfile_serialization = False)
+		fileName = args['saveDir'] + "classifier_final.pt"
+		torch.save(classifier.state_dict(), fileName, _use_new_zipfile_serialization = False)
 	else:
 		eval_net(network = network, classifier = classifier, train_loader = trainLoader, test_loader = testLoader)
 
@@ -208,13 +212,22 @@ if __name__ == "__main__":
 
 	if exp_args['loadDir'] != "":
 		if exp_args['loadFile'] == "":
-			exp_args['loadFile'] = "final_model.pt"
+			exp_args['loadFile'] = "backbone_final.pt"
 		targetFileName = outputDir + exp_args['loadDir'] + "/" + exp_args['loadFile']
 		try:
 			assert os.path.isfile(targetFileName)
 		except AssertionError:
 			raise AssertionError("Load file could not be found: " + targetFileName)
 		net.load_state_dict(torch.load(targetFileName))
+
+		exp_args['loadFile'] = "classifier_final.pt"
+		targetFileName = outputDir + exp_args['loadDir'] + "/" + exp_args['loadFile']
+		try:
+			assert os.path.isfile(targetFileName)
+		except AssertionError:
+			raise AssertionError("Load file could not be found: " + targetFileName)
+		linear_fc.load_state_dict(torch.load(targetFileName))
+		exp_args['pretrained'] = True
 	rng = np.random.default_rng(0)
 	s = 1
 	color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
