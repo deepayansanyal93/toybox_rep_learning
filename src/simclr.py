@@ -38,7 +38,7 @@ class SimCLR:
 		self.unsupervised_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.unsupervised_optimizer,
 																				 T_max = self.num_epochs_unsupervised -
 																						 self.linear_ramp_up_epochs,
-																				 eta_min = 0.01)
+																				 eta_min = 0.001)
 		self.show = False
 		self.num_batches = None
 
