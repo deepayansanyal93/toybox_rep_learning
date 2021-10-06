@@ -54,10 +54,10 @@ class dataloader_toybox(data_loader_generic):
 				self.testImagesFile = "../data/toybox_data_cropped_test.pickle"
 				self.testLabelsFile = "../data/toybox_data_cropped_test.csv"
 			else:
-				self.trainImagesFile = "../data2/toybox_data_interpolated_cropped_train.pickle"
-				self.trainLabelsFile = "../data2/toybox_data_interpolated_cropped_train.csv"
-				self.testImagesFile = "../data2/toybox_data_interpolated_cropped_test.pickle"
-				self.testLabelsFile = "../data2/toybox_data_interpolated_cropped_test.csv"
+				self.trainImagesFile = "../data/toybox_data_interpolated_cropped_train.pickle"
+				self.trainLabelsFile = "../data/toybox_data_interpolated_cropped_train.csv"
+				self.testImagesFile = "../data/toybox_data_interpolated_cropped_test.pickle"
+				self.testLabelsFile = "../data/toybox_data_interpolated_cropped_test.csv"
 		else:
 			if not interpolate:
 				self.trainImagesFile = "../data/toybox_data_cropped_dev.pickle"
@@ -65,10 +65,10 @@ class dataloader_toybox(data_loader_generic):
 				self.testImagesFile = "../data/toybox_data_cropped_val.pickle"
 				self.testLabelsFile = "../data/toybox_data_cropped_val.csv"
 			else:
-				self.trainImagesFile = "../data2/toybox_data_interpolated_cropped_dev.pickle"
-				self.trainLabelsFile = "../data2/toybox_data_interpolated_cropped_dev.csv"
-				self.testImagesFile = "../data2/toybox_data_interpolated_cropped_val.pickle"
-				self.testLabelsFile = "../data2/toybox_data_interpolated_cropped_val.csv"
+				self.trainImagesFile = "../data/toybox_data_interpolated_cropped_dev.pickle"
+				self.trainLabelsFile = "../data/toybox_data_interpolated_cropped_dev.csv"
+				self.testImagesFile = "../data/toybox_data_interpolated_cropped_val.pickle"
+				self.testLabelsFile = "../data/toybox_data_interpolated_cropped_val.csv"
 
 		super().__init__(root = root, rng = rng, train = train, transform = transform, nViews = nViews, size = size,
 						 split = split, fraction = fraction, distort = distort, adj = adj, hyperTune = hyperTune,

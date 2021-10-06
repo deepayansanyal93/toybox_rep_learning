@@ -62,11 +62,11 @@ def learn_unsupervised(gpu, args, learner):
 	if args['dataset'] == "toybox":
 		trainData = data_toybox(root = "./data", rng = args["rng"], train = True, nViews = 2, size = 224,
 							transform = train_transforms, fraction = args['frac1'], distort = args['distort'], adj = args['adj'],
-							hyperTune = args["hypertune"])
+							hyperTune = args["hypertune"], interpolate = args['interpolate'])
 	else:
 		trainData = data_toybox(root = "./data", rng = args["rng"], train = True, nViews = 2, size = 224,
 							transform = train_transforms, fraction = args['frac1'], distort = args['distort'], adj = args['adj'],
-							hyperTune = args["hypertune"])
+							hyperTune = args["hypertune"], interpolate = args['interpolate'])
 
 	# convert network to syncbatchnorm before wrapping with ddp
 	learner.network = nn.SyncBatchNorm.convert_sync_batchnorm(learner.network)
@@ -160,10 +160,11 @@ def learn_supervised(gpu, args, learner, run_id = 0):
 	learner.network = nn.parallel.DistributedDataParallel(learner.network, device_ids = [gpu], broadcast_buffers = False)
 
 	trainSet = data_toybox(root = "./data", train = True, transform = [transform_train, transform_train], split = "super",
-						   size = 224, fraction = args["frac2"], hyperTune = args["hypertune"], rng = args["rng"])
+						   size = 224, fraction = args["frac2"], hyperTune = args["hypertune"], rng = args["rng"],
+						   interpolate = args['interpolate'])
 
 	testSet = data_toybox(root = "./data", train = False, transform = [transform_test, transform_test], split = "super",
-						  size = 224, hyperTune = args["hypertune"], rng = args["rng"])
+						  size = 224, hyperTune = args["hypertune"], rng = args["rng"], interpolate = args['interpolate'])
 
 	train_sampler = torch.utils.data.distributed.DistributedSampler(trainSet, num_replicas = args['world_size'],
 																	rank = rank)
@@ -204,6 +205,7 @@ def learn_supervised(gpu, args, learner, run_id = 0):
 				if args['save']:
 					args['writer'].add_scalar("Loss/Supervised", loss.item(), ep * len(trainLoader) + ep_id)
 					args['writer'].add_scalar("Avg_Loss/Supervised", avg_loss, ep * len(trainLoader) + ep_id)
+					args['writer'].add_scalar("LR/Supervised", optimizer.param_groups[0]['lr'], ep * len(trainLoader) + ep_id)
 		if gpu == 0:
 			tqdmBar.close()
 			sup_losses.append(ep_losses)

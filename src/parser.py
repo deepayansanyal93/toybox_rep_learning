@@ -36,7 +36,7 @@ def get_parser(desc):
 	parser.add_argument('--margin', '-m', default = 1.0, type = float)
 	parser.add_argument('--workers', '-w', default = 4, type = int)
 	parser.add_argument('--gap', '-g', default = 2, type = int)
-	parser.add_argument('--interpolate', '-i', default = False, action = 'store_true')
+	parser.add_argument('--interpolate', '-i', default = True, action = 'store_false')
 	parser.add_argument('--rampup', '-ramp', default = 10, type = int)
 	parser.add_argument('--evalFreq', '-ef', default = -1, type = int)
 
