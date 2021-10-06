@@ -41,15 +41,15 @@ class data_loader(torch.utils.data.Dataset):
 		else:
 			self.label_key = 'Class ID'
 			if self.hypertune:
-				self.trainImagesFile = self.data_path + "toybox_data_cropped_dev.pickle"
-				self.trainLabelsFile = self.data_path + "toybox_data_cropped_dev.csv"
-				self.testImagesFile = self.data_path + "toybox_data_cropped_val.pickle"
-				self.testLabelsFile = self.data_path + "toybox_data_cropped_val.csv"
+				self.trainImagesFile = self.data_path + "toybox_data_interpolated_cropped_dev.pickle"
+				self.trainLabelsFile = self.data_path + "toybox_data_interpolated_cropped_dev.csv"
+				self.testImagesFile = self.data_path + "toybox_data_interpolated_cropped_val.pickle"
+				self.testLabelsFile = self.data_path + "toybox_data_interpolated_cropped_val.csv"
 			else:
-				self.trainImagesFile = self.data_path + "toybox_data_cropped_train.pickle"
-				self.trainLabelsFile = self.data_path + "toybox_data_cropped_train.csv"
-				self.testImagesFile = self.data_path + "toybox_data_cropped_test.pickle"
-				self.testLabelsFile = self.data_path + "toybox_data_cropped_test.csv"
+				self.trainImagesFile = self.data_path + "toybox_data_interpolated_cropped_train.pickle"
+				self.trainLabelsFile = self.data_path + "toybox_data_interpolated_cropped_train.csv"
+				self.testImagesFile = self.data_path + "toybox_data_interpolated_cropped_test.pickle"
+				self.testLabelsFile = self.data_path + "toybox_data_interpolated_cropped_test.csv"
 
 		super().__init__()
 		if self.train:
