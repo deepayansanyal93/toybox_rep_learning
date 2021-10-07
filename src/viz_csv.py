@@ -344,9 +344,9 @@ if __name__ == "__main__":
 	fileName = directory + "test_predictions_0.csv"
 	fileName2 = "../output/" + parser['dir'] + "_2/test_predictions_0.csv"
 	if parser['val']:
-		testFileName = "../data/toybox_data_cropped_val.csv"
+		testFileName = "../data/toybox_data_interpolated_cropped_val.csv"
 	else:
-		testFileName = "../data/toybox_data_cropped_test.csv"
+		testFileName = "../data/toybox_data_interpolated_cropped_test.csv"
 	build_conf_matrix(file_name = fileName, outdir = directory)
 	build_conf_matrix_obj(file_name = fileName, test_data_file_name = testFileName, out_dir = directory)
 	calc_total_accuracy(file_name = fileName)

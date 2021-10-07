@@ -35,7 +35,6 @@ def linear_acc(backbone, classifier, trainLoader, testLoader):
 	top1acc = 0
 	top5acc = 0
 	totTrainPoints = 0
-
 	for _, (indices, images, labels) in enumerate(trainLoader):
 		images = images.cuda(non_blocking = True)
 		labels = labels.cuda(non_blocking = True)
@@ -80,16 +79,19 @@ if __name__ == "__main__":
 	backbone = backbone.cuda()
 	classifier = classifier.cuda()
 
+	transform_train = transforms.Compose([transforms.ToPILImage(), transforms.RandomCrop(padding = 10, size = 224),
+										  transforms.ToTensor(), transforms.Normalize(mean, std)])
+
 	transform_test = transforms.Compose([transforms.ToPILImage(), transforms.Resize(224), transforms.ToTensor(),
 										 transforms.Normalize(mean, std)])
 
 	rng = np.random.default_rng(0)
 
-	trainSet = data_toybox(root = "./data", train = True, transform = transform_test, split = "super", size = 224,
-						   fraction = 0.1, hyperTune = False, rng = rng)
+	trainSet = data_toybox(root = "./data", train = True, transform = [transform_train, transform_train], split = "super", size = 224,
+						   fraction = 0.1, hyperTune = True, rng = rng, interpolate = True)
 
-	testSet = data_toybox(root = "./data", train = False, transform = transform_test, split = "super", size = 224,
-						  hyperTune = False, rng = rng)
+	testSet = data_toybox(root = "./data", train = False, transform = [transform_test, transform_test], split = "super", size = 224,
+						  hyperTune = True, rng = rng, interpolate = True)
 
 	trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = 64, shuffle = False, num_workers = 2,
 											  pin_memory = False, persistent_workers = True)
