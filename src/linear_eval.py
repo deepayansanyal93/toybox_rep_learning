@@ -5,6 +5,8 @@ import os
 import torch.nn as nn
 import torchvision.transforms as transforms
 import numpy as np
+import torch.optim as optimizers
+import tqdm
 
 import network_components as ncomponents
 from dataloader_toybox import dataloader_toybox as data_toybox
@@ -17,8 +19,13 @@ def get_parser(desc):
 	parser = argparse.ArgumentParser(description = desc)
 	parser.add_argument("--dataset", "-data", default = "toybox", type = str)
 	parser.add_argument("--backbone", "-back", required = True, type = str)
-	parser.add_argument("--classifier", "-c", required = True, type = str)
+	parser.add_argument("--classifier", "-c", default = "", type = str)
 	parser.add_argument("--epochs", "-e", default = 0, type = int)
+	parser.add_argument("--lr", "-lr", default = 0.1, type = float)
+	parser.add_argument("--ft", "-ft", default = False, action = 'store_true')
+	parser.add_argument("--lrs", "-lrs", nargs = '+', type = float)
+	parser.add_argument("--batch-size", "-b", default = 256, type = int)
+	parser.add_argument("--reps", "-rep", default = 3, type = int)
 
 	return parser.parse_args()
 
@@ -68,18 +75,20 @@ def linear_acc(backbone, classifier, trainLoader, testLoader):
 	return top1acc, top1corr, totTestPoints
 
 
-if __name__ == "__main__":
-	args = vars(get_parser(desc = "Linear eval"))
+def eval_run(args):
 	assert os.path.isfile(args["backbone"])
-	assert os.path.isfile(args["classifier"])
+	if args["classifier"] != "":
+		assert os.path.isfile(args["classifier"])
 	backbone = ncomponents.netBackbone(backbone = "resnet18", model_name = "BYOL backbone")
 	backbone.load_state_dict(torch.load(args["backbone"]))
 	classifier = nn.Linear(backbone.get_feat_size(), 12)
-	classifier.load_state_dict(torch.load(args["classifier"]))
+	if args['classifier'] != "":
+		classifier.load_state_dict(torch.load(args["classifier"]))
 	backbone = backbone.cuda()
 	classifier = classifier.cuda()
 
-	transform_train = transforms.Compose([transforms.ToPILImage(), transforms.RandomCrop(padding = 10, size = 224),
+	transform_train = transforms.Compose([transforms.ToPILImage(), transforms.Resize(224),
+										  transforms.RandomCrop(padding = 10, size = 224),
 										  transforms.ToTensor(), transforms.Normalize(mean, std)])
 
 	transform_test = transforms.Compose([transforms.ToPILImage(), transforms.Resize(224), transforms.ToTensor(),
@@ -87,16 +96,71 @@ if __name__ == "__main__":
 
 	rng = np.random.default_rng(0)
 
-	trainSet = data_toybox(root = "./data", train = True, transform = [transform_train, transform_train], split = "super", size = 224,
+	trainSet = data_toybox(root = "./data", train = True, transform = [transform_train, transform_train],
+						   split = "super", size = 224,
 						   fraction = 0.1, hyperTune = True, rng = rng, interpolate = True)
 
-	testSet = data_toybox(root = "./data", train = False, transform = [transform_test, transform_test], split = "super", size = 224,
+	testSet = data_toybox(root = "./data", train = False, transform = [transform_test, transform_test], split = "super",
+						  size = 224,
 						  hyperTune = True, rng = rng, interpolate = True)
 
-	trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = 64, shuffle = False, num_workers = 2,
+	trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = args['batch_size'], shuffle = False, num_workers = 4,
 											  pin_memory = False, persistent_workers = True)
 
-	testLoader = torch.utils.data.DataLoader(testSet, batch_size = 256, shuffle = False, pin_memory = False,
+	testLoader = torch.utils.data.DataLoader(testSet, batch_size = 128, shuffle = False, pin_memory = False,
 											 num_workers = 2)
 
-	linear_acc(backbone = backbone, classifier = classifier, trainLoader = trainLoader, testLoader = testLoader)
+	for params in backbone.parameters():
+		params.requires_grad = False
+	backbone.eval()
+
+	num_epochs = args['epochs']
+	optimizer = optimizers.SGD(classifier.parameters(), lr = args['lr'], weight_decay = 1e-6, momentum = 0.9)
+	for epoch in range(num_epochs):
+		tqdmBar = tqdm.tqdm(total = len(trainLoader))
+		ep = 0
+		tot_loss = 0.0
+		for _, images, labels in trainLoader:
+			ep += 1
+			optimizer.zero_grad()
+			images, labels = images.cuda(), labels.cuda()
+			feats = backbone.forward(images)
+			logits = classifier(feats)
+			loss = nn.CrossEntropyLoss()(logits, labels)
+			loss.backward()
+			optimizer.step()
+			tot_loss += loss.item()
+			tqdmBar.update(1)
+			avg_loss = tot_loss / ep
+			tqdmBar.set_description("Epoch: {:d}/{:d} LR: {:f} Loss: {:f}".format(epoch + 1, num_epochs,
+																				  optimizer.param_groups[0]['lr'],
+																				  avg_loss))
+
+		if epoch % 20 == 19 and ep > 0:
+			optimizer.param_groups[0]['lr'] *= 0.9
+		tqdmBar.close()
+
+	top1acc, _, _ = linear_acc(backbone = backbone, classifier = classifier, trainLoader = trainLoader, testLoader = testLoader)
+	return top1acc
+
+
+if __name__ == "__main__":
+	exp_args = vars(get_parser(desc = "Linear eval"))
+	lrs = exp_args['lrs']
+	accs = {}
+	num_reps = exp_args['reps']
+	for i, lr in enumerate(lrs):
+		accs[lr] = []
+		exp_args['lr'] = lr
+		print("================================================================================================")
+		print("Starting training with lr {:.3f} ({:d} of {:d} values)".format(lr, i + 1, len(lrs)))
+		for j in range(num_reps):
+			print("------------------------------------------------------------------------------------------------")
+			print("Starting run {:d} of {:d} with lr {:.3f}".format(j + 1, num_reps, lr))
+			acc = eval_run(args = exp_args)
+			accs[lr].append(acc)
+			print("------------------------------------------------------------------------------------------------")
+		print("================================================================================================")
+	print("lr, mean, std")
+	for i, lr in enumerate(lrs):
+		print(lr, np.mean(np.asarray(accs[lr])), np.std(np.asarray(accs[lr])))
