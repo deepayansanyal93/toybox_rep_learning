@@ -124,8 +124,10 @@ def train(network, classifier, train_data, test_data, args):
 
 	optimizer = optim.Adam(classifier.parameters(), lr = args['lr'], weight_decay = 1e-5)
 	if not args['pretrained'] or args['finetune']:
+		print("Adding backbone parameters to optimizer....")
 		optimizer.add_param_group({'params': network.parameters()})
 	else:
+		print("Freezing backbone parameters....")
 		for params in network.parameters():
 			params.requires_grad = False
 	scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer = optimizer, T_max = max(10, (args['epochs'] - 10)) *
@@ -208,7 +210,7 @@ if __name__ == "__main__":
 	if exp_args["instance"]:
 		net, linear_fc = get_network(pre = False, num_classes = 288)
 	else:
-		net, linear_fc = get_network(pre = False, num_classes = 12)
+		net, linear_fc = get_network(pre = exp_args['pretrained'], num_classes = 12)
 
 	if exp_args['loadDir'] != "":
 		if exp_args['loadFile'] == "":
