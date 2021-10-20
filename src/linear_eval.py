@@ -26,6 +26,7 @@ def get_parser(desc):
 	parser.add_argument("--lrs", "-lrs", nargs = '+', type = float)
 	parser.add_argument("--batch-size", "-b", default = 256, type = int)
 	parser.add_argument("--reps", "-rep", default = 3, type = int)
+	parser.add_argument("--device", "-d", default = 0, type = int)
 
 	return parser.parse_args()
 
@@ -97,12 +98,10 @@ def eval_run(args):
 	rng = np.random.default_rng(0)
 
 	trainSet = data_toybox(root = "./data", train = True, transform = [transform_train, transform_train],
-						   split = "super", size = 224,
-						   fraction = 0.1, hyperTune = True, rng = rng, interpolate = True)
+						   split = "super", size = 224, fraction = 0.1, hyperTune = True, rng = rng, interpolate = True)
 
 	testSet = data_toybox(root = "./data", train = False, transform = [transform_test, transform_test], split = "super",
-						  size = 224,
-						  hyperTune = True, rng = rng, interpolate = True)
+						  size = 224, hyperTune = True, rng = rng, interpolate = True)
 
 	trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = args['batch_size'], shuffle = False, num_workers = 4,
 											  pin_memory = False, persistent_workers = True)
@@ -146,6 +145,7 @@ def eval_run(args):
 
 if __name__ == "__main__":
 	exp_args = vars(get_parser(desc = "Linear eval"))
+	torch.cuda.set_device(exp_args['device'])
 	lrs = exp_args['lrs']
 	accs = {}
 	num_reps = exp_args['reps']
