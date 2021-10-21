@@ -7,8 +7,8 @@ import torchvision.transforms as transforms
 import numpy as np
 import torch.optim as optimizers
 import tqdm
-import torchvision.datasets as datasets
 
+import dataloader_transfer as dataloader
 import network_components as ncomponents
 from dataloader_toybox import dataloader_toybox as data_toybox
 
@@ -29,7 +29,7 @@ def get_parser(desc):
 	parser.add_argument("--lrs", "-lrs", nargs = '+', type = float)
 	parser.add_argument("--batch-size", "-b", default = 256, type = int)
 	parser.add_argument("--reps", "-rep", default = 3, type = int)
-
+	parser.add_argument("--hypertune", "-ht", default = False, action = 'store_true')
 	return parser.parse_args()
 
 
@@ -45,7 +45,7 @@ def linear_acc(backbone, classifier, trainLoader, testLoader):
 	top1acc = 0
 	top5acc = 0
 	totTrainPoints = 0
-	for _, (images, labels) in enumerate(trainLoader):
+	for _, (_, images, labels) in enumerate(trainLoader):
 		images = images.cuda(non_blocking = True)
 		labels = labels.cuda(non_blocking = True)
 		with torch.no_grad():
@@ -62,7 +62,7 @@ def linear_acc(backbone, classifier, trainLoader, testLoader):
 	top1corr = 0
 	top5acc = 0
 	totTestPoints = 0
-	for _, (images, labels) in enumerate(testLoader):
+	for _, (_, images, labels) in enumerate(testLoader):
 		images = images.cuda(non_blocking = True)
 		labels = labels.cuda(non_blocking = True)
 		with torch.no_grad():
@@ -88,15 +88,19 @@ def eval_run(args):
 	backbone = backbone.cuda()
 	classifier = classifier.cuda()
 
-	transform_train = transforms.Compose([transforms.Resize(224), transforms.RandomCrop(padding = 10, size = 224),
+	transform_train = transforms.Compose([transforms.ToPILImage(), transforms.Resize(224),
+										  transforms.RandomCrop(padding = 10, size = 224),
 										  transforms.ToTensor(), transforms.RandomHorizontalFlip(p = 0.5),
 										  transforms.Normalize(cifar10_mean, cifar10_std)])
 
-	transform_test = transforms.Compose([transforms.Resize(224), transforms.ToTensor(),
+	transform_test = transforms.Compose([transforms.ToPILImage(), transforms.Resize(224), transforms.ToTensor(),
 										 transforms.Normalize(cifar10_mean, cifar10_std)])
+	rng = np.random.default_rng(0)
 
-	trainSet = datasets.CIFAR10(root = "./transfer_data", train = True, download = True, transform = transform_train)
-	testSet = datasets.CIFAR10(root = "./transfer_data", train = False, download = True, transform = transform_test)
+	trainSet = dataloader.fCIFAR10(root = "../transfer_data", train = True, download = True, transform = transform_train,
+								   hypertune = args['hypertune'], rng = rng)
+	testSet = dataloader.fCIFAR10(root = "../transfer_data", train = False, download = True, transform = transform_test,
+								  hypertune = args['hypertune'], rng = rng)
 
 	trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = args['batch_size'], shuffle = False, num_workers = 4,
 											  pin_memory = False, persistent_workers = True)
@@ -114,7 +118,7 @@ def eval_run(args):
 		tqdmBar = tqdm.tqdm(total = len(trainLoader))
 		ep = 0
 		tot_loss = 0.0
-		for images, labels in trainLoader:
+		for _, images, labels in trainLoader:
 			ep += 1
 			optimizer.zero_grad()
 			images, labels = images.cuda(), labels.cuda()
