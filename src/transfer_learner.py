@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 import numpy as np
 import torch.optim as optimizers
 import tqdm
+import torchvision.models as models
 
 import dataloader_transfer as dataloader
 import network_components as ncomponents
@@ -82,9 +83,13 @@ def eval_run(args):
 	assert os.path.isfile(args["backbone"])
 	if args["classifier"] != "":
 		assert os.path.isfile(args["classifier"])
-	backbone = ncomponents.netBackbone(backbone = "resnet18", model_name = "BYOL backbone")
+	if "supervised" in args['backbone']:
+		backbone = models.resnet18(pretrained = False, num_classes = 10)
+		backbone.fc = nn.Identity()
+	else:
+		backbone = ncomponents.netBackbone(backbone = "resnet18", model_name = "BYOL backbone")
 	backbone.load_state_dict(torch.load(args["backbone"]))
-	classifier = nn.Linear(backbone.get_feat_size(), 10)
+	classifier = nn.Linear(512, 10)
 	backbone = backbone.cuda()
 	classifier = classifier.cuda()
 
