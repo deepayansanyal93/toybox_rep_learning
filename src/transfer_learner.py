@@ -83,7 +83,7 @@ def eval_run(args):
 	assert os.path.isfile(args["backbone"])
 	if args["classifier"] != "":
 		assert os.path.isfile(args["classifier"])
-	if "supervised" in args['backbone']:
+	if "supervised_output" in args['backbone']:
 		backbone = models.resnet18(pretrained = False, num_classes = 10)
 		backbone.fc = nn.Identity()
 	else:
