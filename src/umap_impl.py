@@ -91,7 +91,7 @@ if __name__ == "__main__":
 												  hypertune = False,
 												  transform = train_transform, fraction = 0.5)
 
-	trainLoader = torch.utils.data.DataLoader(trainData, batch_size = 512, shuffle = False,
+	trainLoader = torch.utils.data.DataLoader(trainData, batch_size = 256, shuffle = False,
 											  num_workers = 4, pin_memory = False,
 											  persistent_workers = True)
 	print("Number of Training Examples:", len(trainData))
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 	print(all_logits.shape, all_labels.shape, time.time() - start_time)
 	nns = [10, 25, 50, 100, 200, 400]
 	mds = [0.02, 0.04, 0.08, 0.1, 0.2, 0.4]
-	# nns = [10, 25]
+	# nns = [10]
 	# mds = [0.02, 0.04]
 	for nn in nns:
 		for md in mds:
@@ -138,12 +138,13 @@ if __name__ == "__main__":
 				plt.scatter(obj_embedding[obj_inv_bool_list, 0], obj_embedding[obj_inv_bool_list, 1],
 							c = [cmap(cols[i]) for _ in range(incorrect)], cmap = 'nipy_spectral', marker = 'x', s = 200)
 			plt.gca().set_aspect('auto', 'datalim')
-			plt.legend(loc = 'lower right', prop = {'size' : 25})
+			plt.legend(loc = 'lower right', prop = {'size' : 25}, bbox_to_anchor = (0.8, 1.015), fancybox = True,
+					   shadow = True, ncol = 6)
 			fig = plt.gcf()
-			fig.set_size_inches(20, 20)
+			fig.set_size_inches(35, 35)
 			outDir = "../output/" + dirName + "/umaps"
 			if not os.path.isdir(outDir):
 				os.mkdir(outDir)
 			outPath = "../output/" + dirName + "/umaps/umap_" + str(nn) + "_" + str(md) + ".png"
-			plt.savefig(outPath)
+			plt.savefig(outPath, bbox_inches = 'tight')
 			plt.close()
